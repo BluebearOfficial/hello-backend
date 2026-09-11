@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <h2>登录</h2>
+  <input id="u" placeholder="用户名" />
+  <input id="p" placeholder="密码" type="password" />
+  <button onclick="login()">登录</button>
+  <p id="msg"></p>
+
+  <h2>我的进度</h2>
+  <button onclick="loadProgress()">查看进度</button>
+  <button onclick="gain()">+10 金币</button>
+  <pre id="progress"></pre>
+
+  <script>
+    let token = '';
+
+    async function login() {
+      const r = await fetch('http://localhost:3000/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: document.getElementById('u').value,
+          password: document.getElementById('p').value,
+        }),
+      });
+      const d = await r.json();
+      if (d.ok) {
+        token = d.token;
+        document.getElementById('msg').innerText = '登录成功：' + d.username;
+      } else {
+        document.getElementById('msg').innerText = d.msg;
+      }
+    }
+
+    async function loadProgress() {
+      const r = await fetch('http://localhost:3000/api/progress', {
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      const d = await r.json();
+      document.getElementById('progress').innerText = JSON.stringify(d, null, 2);
+    }
+
+    async function gain() {
+      const r = await fetch('http://localhost:3000/api/gain', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      const d = await r.json();
+      document.getElementById('progress').innerText = JSON.stringify(d, null, 2);
+    }
+  </script>
+</body>
+</html>

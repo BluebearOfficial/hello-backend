@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <h1>加载中…</h1>
+  <script>
+    fetch('http://localhost:3000/api/hello')
+      .then(r => r.json())
+      .then(d => document.querySelector('h1').innerText =
+        d.message + '（第 ' + d.visits + ' 次访问）')
+      .catch(e => document.querySelector('h1').innerText = '出错了：' + e);
+  </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "alice",
+      "password": "123456"
+    },
+    {
+      "id": 2,
+      "username": "bob",
+      "password": "abcdef"
+    }
+  ],
+  "progress": {
+    "1": {
+      "level": 5,
+      "gold": 470
+    },
+    "2": {
+      "level": 2,
+      "gold": 180
+    }
+  }
+}

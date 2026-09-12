@@ -33,7 +33,7 @@ app.post('/api/register', (req, res) => {
   }
   const id = db.users.length + 1;
   db.users.push({ id, username, password });
-  db.progress[id] = { level: 1, gold: 0 };
+  db.progress[id] = {  gold: 0 };
   save();
   res.json({ ok: true, msg: '注册成功' });
 });

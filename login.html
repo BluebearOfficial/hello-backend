@@ -1,23 +1,64 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <meta charset="UTF-8">
+<style>
+  body {
+    font-family: system-ui, sans-serif;
+    max-width: 500px;
+    margin: 40px auto;
+    padding: 20px;
+  }
+  .stats, .machines {
+    background: #f5f5f5;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+  }
+  .machines div { margin: 4px 0; }
+  .actions button {
+    margin: 4px 4px 0 0;
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+</style>
+</head>
+
 <body>
-  <h2>登录</h2>
-  <input id="u" placeholder="用户名" />
-  <input id="p" placeholder="密码" type="password" />
-  <button onclick="login()">登录</button>
+ <body>
+  <h1>放置游戏</h1>
+
+  <!-- 登录区 -->
+  <div id="loginBox">
+    <input id="u" placeholder="用户名" />
+    <input id="p" placeholder="密码" type="password" />
+    <button onclick="login()">登录</button>
+  </div>
   <p id="msg"></p>
 
-  <h2>我的进度</h2>
-  <button onclick="loadProgress()">查看进度</button>
-  <button onclick="gain()">+10 金币</button>
- <button onclick="buyMachine(1)">买 1 级自动机</button>
-<button onclick="buyMachine(2)">买 2 级自动机</button>
-<button onclick="buyMachine(3)">买 3 级自动机</button>
-<button onclick="buyMachine(4)">买 4 级自动机</button>
-<button onclick="doPrestige()">重置换声望</button>
-<button onclick="stopAutoRefresh()">停止自动刷新</button>
-<button onclick="startAutoRefresh()">开始自动刷新</button>
-  <pre id="progress"></pre>
+  <!-- 游戏区 -->
+  <div id="gameBox" style="display:none">
+    <div class="stats">
+      <div>💰 金币：<span id="gold">0</span></div>
+      <div>⭐ 声望：<span id="prestige">0</span></div>
+    </div>
+
+    <div class="machines">
+      <div>🏭 1级自动机：<span id="m1">0</span></div>
+      <div>🏭 2级自动机：<span id="m2">0</span></div>
+      <div>🏭 3级自动机：<span id="m3">0</span></div>
+      <div>🏭 4级自动机：<span id="m4">0</span></div>
+    </div>
+
+    <div class="actions">
+      <button onclick="buyMachine(1)">买 1 级</button>
+      <button onclick="buyMachine(2)">买 2 级</button>
+      <button onclick="buyMachine(3)">买 3 级</button>
+      <button onclick="buyMachine(4)">买 4 级</button>
+      <button onclick="doPrestige()">重置换声望</button>
+    </div>
+  </div>
+</body>
 
   <script>
     let token = '';
@@ -32,22 +73,30 @@
         }),
       });
       const d = await r.json();
-      if (d.ok) {
+   if (d.ok) {
   token = d.token;
   document.getElementById('msg').innerText = '登录成功：' + d.username;
-  startAutoRefresh();   // ← 加这行
-} else {
-        document.getElementById('msg').innerText = d.msg;
-      }
+  document.getElementById('loginBox').style.display = 'none';   // 隐藏登录
+  document.getElementById('gameBox').style.display = 'block';   // 显示游戏
+  startAutoRefresh();
+}
     }
 
     async function loadProgress() {
-      const r = await fetch('http://localhost:3000/api/progress', {
-        headers: { 'Authorization': 'Bearer ' + token },
-      });
-      const d = await r.json();
-      document.getElementById('progress').innerText = JSON.stringify(d, null, 2);
-    }
+  const r = await fetch('http://localhost:3000/api/progress', {
+    headers: { 'Authorization': 'Bearer ' + token },
+  });
+  const d = await r.json();
+  if (!d.ok) return;
+
+  const p = d.progress;
+  document.getElementById('gold').innerText = fmt(p.gold);
+  document.getElementById('prestige').innerText = p.prestige;
+  document.getElementById('m1').innerText = fmt(p.machines["1"]);
+  document.getElementById('m2').innerText = fmt(p.machines["2"]);
+  document.getElementById('m3').innerText = fmt(p.machines["3"]);
+  document.getElementById('m4').innerText = fmt(p.machines["4"]);
+}
 
     let timer = null;
 
@@ -66,6 +115,14 @@ function stopAutoRefresh() {
     timer = null;
   }
 }
+function fmt(n) {
+  if (n < 1000) return n.toFixed(1);
+  if (n < 1e6) return (n / 1e3).toFixed(2) + 'K';
+  if (n < 1e9) return (n / 1e6).toFixed(2) + 'M';
+  if (n < 1e12) return (n / 1e9).toFixed(2) + 'B';
+  return n.toExponential(2);
+}
+
 
     async function gain() {
       const r = await fetch('http://localhost:3000/api/gain', {
@@ -73,7 +130,7 @@ function stopAutoRefresh() {
         headers: { 'Authorization': 'Bearer ' + token },
       });
       const d = await r.json();
-      document.getElementById('progress').innerText = JSON.stringify(d, null, 2);
+      loadProgress();   // 立刻刷新
     }
 
 async function buyMachine(level) {
@@ -86,7 +143,7 @@ async function buyMachine(level) {
     body: JSON.stringify({ level }),
   });
   const d = await r.json();
-  document.getElementById('progress').innerText = JSON.stringify(d, null, 2);
+  loadProgress();   // 立刻刷新
 }
 
 async function doPrestige() {
@@ -95,7 +152,7 @@ async function doPrestige() {
     headers: { 'Authorization': 'Bearer ' + token },
   });
   const d = await r.json();
-  document.getElementById('progress').innerText = JSON.stringify(d, null, 2);
+  loadProgress();   // 立刻刷新
   loadProgress();  // 立刻刷新
 }
   </script>

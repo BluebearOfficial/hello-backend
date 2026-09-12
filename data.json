@@ -14,11 +14,15 @@
   "progress": {
     "1": {
       "level": 5,
-      "gold": 480
+      "gold": 97.0369999999997,
+      "machines": 27,
+      "lastTick": 1789184480737
     },
     "2": {
       "level": 2,
-      "gold": 180
+      "gold": 444.82500000000005,
+      "machines": 4,
+      "lastTick": 1789184538145
     }
   }
 }

@@ -59,6 +59,10 @@ app.get('/api/progress', (req, res) => {
   if (!userId) {
     return res.json({ ok: false, msg: '未登录或 token 无效' });
   }
+
+  settle(userId);   // ← 加这一行
+  save();
+
   res.json({
     ok: true,
     username: db.users.find(u => u.id === userId).username,
@@ -79,6 +83,53 @@ app.post('/api/gain', (req, res) => {
   save();
   res.json({ ok: true, progress: db.progress[userId] });
 });
+
+app.post('/api/buy-machine', (req, res) => {
+  const auth = req.headers.authorization || '';
+  const token = auth.replace('Bearer ', '');
+  const userId = tokens[token];
+
+  if (!userId) {
+    return res.json({ ok: false, msg: '未登录' });
+  }
+
+  settle(userId);
+
+  const p = db.progress[userId];
+  const cost = Math.floor(MACHINE_BASE_COST * Math.pow(MACHINE_COST_GROWTH, p.machines));
+
+  if (p.gold < cost) {
+    return res.json({ ok: false, msg: '金币不够', need: cost });
+  }
+
+  p.gold -= cost;
+  p.machines += 1;
+  save();
+
+  res.json({ ok: true, progress: p, cost: cost });
+});
+
+
+const MACHINE_RATE = 1;   // 每台 1 级自动机每秒产 1 金币
+const MACHINE_BASE_COST = 10;  // 第一台的价格
+const MACHINE_COST_GROWTH = 1.15; // 每买一台，价格乘 1.15
+
+// 结算某个用户的离线收益
+function settle(userId) {
+  const p = db.progress[userId];
+  const now = Date.now();
+
+  // 第一次访问：只记录时间，不结算
+  if (!p.lastTick) {
+    p.lastTick = now;
+    return;
+  }
+
+  const elapsed = (now - p.lastTick) / 1000; // 过了多少秒
+  p.gold += p.machines * MACHINE_RATE * elapsed;
+  p.lastTick = now;
+}
+
 
 app.listen(3000, () => {
   console.log('后端跑起来了：http://localhost:3000');

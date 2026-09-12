@@ -12,6 +12,11 @@
   <button onclick="gain()">+10 金币</button>
  <button onclick="buyMachine(1)">买 1 级自动机</button>
 <button onclick="buyMachine(2)">买 2 级自动机</button>
+<button onclick="buyMachine(3)">买 3 级自动机</button>
+<button onclick="buyMachine(4)">买 4 级自动机</button>
+<button onclick="doPrestige()">重置换声望</button>
+<button onclick="stopAutoRefresh()">停止自动刷新</button>
+<button onclick="startAutoRefresh()">开始自动刷新</button>
   <pre id="progress"></pre>
 
   <script>
@@ -28,9 +33,10 @@
       });
       const d = await r.json();
       if (d.ok) {
-        token = d.token;
-        document.getElementById('msg').innerText = '登录成功：' + d.username;
-      } else {
+  token = d.token;
+  document.getElementById('msg').innerText = '登录成功：' + d.username;
+  startAutoRefresh();   // ← 加这行
+} else {
         document.getElementById('msg').innerText = d.msg;
       }
     }
@@ -42,6 +48,24 @@
       const d = await r.json();
       document.getElementById('progress').innerText = JSON.stringify(d, null, 2);
     }
+
+    let timer = null;
+
+function startAutoRefresh() {
+  // 先立刻拉一次
+  loadProgress();
+
+  // 每 2 秒拉一次
+  if (timer) clearInterval(timer);
+  timer = setInterval(loadProgress, 2000);
+}
+
+function stopAutoRefresh() {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
+}
 
     async function gain() {
       const r = await fetch('http://localhost:3000/api/gain', {
@@ -63,6 +87,16 @@ async function buyMachine(level) {
   });
   const d = await r.json();
   document.getElementById('progress').innerText = JSON.stringify(d, null, 2);
+}
+
+async function doPrestige() {
+  const r = await fetch('http://localhost:3000/api/prestige', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token },
+  });
+  const d = await r.json();
+  document.getElementById('progress').innerText = JSON.stringify(d, null, 2);
+  loadProgress();  // 立刻刷新
 }
   </script>
 </body>

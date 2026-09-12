@@ -14,21 +14,29 @@
   "progress": {
     "1": {
       "level": 5,
-      "gold": 1731.0796087999993,
-      "machines": {
-        "1": 239.2482,
-        "2": 18
-      },
-      "lastTick": 1789185780835
-    },
-    "2": {
-      "level": 2,
-      "gold": 30,
+      "gold": 120,
       "machines": {
         "1": 0,
-        "2": 0
+        "2": 0,
+        "3": 0,
+        "4": 0
       },
-      "lastTick": 0
+      "lastTick": 1789189451461,
+      "prestige": 0,
+      "totalGold": 0
+    },
+    "2": {
+      "level": 3,
+      "gold": 0,
+      "machines": {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0
+      },
+      "lastTick": 1789189825873,
+      "prestige": 76859,
+      "totalGold": 0
     }
   }
 }

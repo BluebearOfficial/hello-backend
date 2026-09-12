@@ -93,6 +93,40 @@ app.post('/api/buy-machine', (req, res) => {
     return res.json({ ok: false, msg: '未登录' });
   }
 
+app.post('/api/prestige', (req, res) => {
+  const auth = req.headers.authorization || '';
+  const token = auth.replace('Bearer ', '');
+  const userId = tokens[token];
+
+  if (!userId) {
+    return res.json({ ok: false, msg: '未登录' });
+  }
+
+  settle(userId);   // 先结算，确保 totalGold 是最新的
+
+  const p = db.progress[userId];
+
+  // 算能换多少声望
+  const gained = Math.floor(Math.sqrt(p.totalGold / PRESTIGE_DIVISOR));
+  if (gained <= 0) {
+    return res.json({ ok: false, msg: '还不够重置，多攒点总金币', totalGold: p.totalGold });
+  }
+
+  // 加声望
+  p.prestige += gained;
+
+  // 重置这一轮
+  p.gold = 0;
+  p.machines = { "1": 0, "2": 0, "3": 0, "4": 0 };
+  p.totalGold = 0;
+  p.lastTick = Date.now();
+
+  save();
+
+  res.json({ ok: true, gained, prestige: p.prestige });
+});
+
+
   settle(userId);
 
   const level = req.body.level || 1;  // 默认买 1 级
@@ -103,7 +137,13 @@ app.post('/api/buy-machine', (req, res) => {
     cost = Math.floor(MACHINE_BASE_COST * Math.pow(MACHINE_COST_GROWTH, p.machines["1"]));
   } else if (level === 2) {
     cost = Math.floor(M2_BASE_COST * Math.pow(M2_COST_GROWTH, p.machines["2"]));
-  } else {
+  } else if (level === 3) {
+  cost = Math.floor(M3_BASE_COST * Math.pow(M3_COST_GROWTH, p.machines["3"]));
+}else if (level === 4) {
+  cost = Math.floor(M4_BASE_COST * Math.pow(M4_COST_GROWTH, p.machines["4"]));
+}
+  
+  else {
     return res.json({ ok: false, msg: '没有这个等级' });
   }
 
@@ -127,6 +167,17 @@ const M2_RATE = 0.2;               // 2 级自动机：每秒产 0.2 个 1 级�
 const M2_BASE_COST = 100;          // 2 级自动机基础价
 const M2_COST_GROWTH = 1.2;        // 2 级价格增长
 
+const M3_RATE = 0.05;              // 3 级自动机：每秒产 0.05 个 2 级自动机
+const M3_BASE_COST = 1000;         // 3 级自动机基础价
+const M3_COST_GROWTH = 1.3;        // 3 级价格增长
+
+const M4_RATE = 0.01;              // 4 级自动机：每秒产 0.01 个 3 级自动机
+const M4_BASE_COST = 10000;        // 4 级自动机基础价
+const M4_COST_GROWTH = 1.4;        // 4 级价格增长
+
+const PRESTIGE_BONUS = 0.1;   // 每点声望 +10% 产量
+const PRESTIGE_DIVISOR = 1e6; // 声望公式里的除数
+
 // 结算某个用户的离线收益
 function settle(userId) {
   const p = db.progress[userId];
@@ -138,14 +189,21 @@ function settle(userId) {
   }
 
   const elapsed = (now - p.lastTick) / 1000;
+  const mult = prestigeMultiplier(p);   // ← 声望加成
 
-  // 先算 2 级：它产 1 级自动机
-  p.machines["1"] += p.machines["2"] * M2_RATE * elapsed;
+  p.machines["3"] += p.machines["4"] * M4_RATE * elapsed * mult;
+  p.machines["2"] += p.machines["3"] * M3_RATE * elapsed * mult;
+  p.machines["1"] += p.machines["2"] * M2_RATE * elapsed * mult;
 
-  // 再算 1 级：它产金币
-  p.gold += p.machines["1"] * MACHINE_RATE * elapsed;
+  const gain = p.machines["1"] * MACHINE_RATE * elapsed * mult;  // ← 产出的金币
+  p.gold += gain;
+  p.totalGold += gain;                  // ← 累加总金币
 
   p.lastTick = now;
+}
+
+function prestigeMultiplier(p) {
+  return 1 + p.prestige * PRESTIGE_BONUS;
 }
 
 app.listen(3000, () => {

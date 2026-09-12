@@ -95,41 +95,58 @@ app.post('/api/buy-machine', (req, res) => {
 
   settle(userId);
 
+  const level = req.body.level || 1;  // 默认买 1 级
   const p = db.progress[userId];
-  const cost = Math.floor(MACHINE_BASE_COST * Math.pow(MACHINE_COST_GROWTH, p.machines));
+
+  let cost;
+  if (level === 1) {
+    cost = Math.floor(MACHINE_BASE_COST * Math.pow(MACHINE_COST_GROWTH, p.machines["1"]));
+  } else if (level === 2) {
+    cost = Math.floor(M2_BASE_COST * Math.pow(M2_COST_GROWTH, p.machines["2"]));
+  } else {
+    return res.json({ ok: false, msg: '没有这个等级' });
+  }
 
   if (p.gold < cost) {
     return res.json({ ok: false, msg: '金币不够', need: cost });
   }
 
   p.gold -= cost;
-  p.machines += 1;
+  p.machines[level] += 1;
   save();
 
-  res.json({ ok: true, progress: p, cost: cost });
+  res.json({ ok: true, progress: p, cost });
 });
 
 
-const MACHINE_RATE = 1;   // 每台 1 级自动机每秒产 1 金币
-const MACHINE_BASE_COST = 10;  // 第一台的价格
-const MACHINE_COST_GROWTH = 1.15; // 每买一台，价格乘 1.15
+const MACHINE_RATE = 1;            // 1 级自动机：每秒产 1 金币
+const MACHINE_BASE_COST = 10;      // 1 级自动机基础价
+const MACHINE_COST_GROWTH = 1.15;  // 1 级价格增长
+
+const M2_RATE = 0.2;               // 2 级自动机：每秒产 0.2 个 1 级自动机
+const M2_BASE_COST = 100;          // 2 级自动机基础价
+const M2_COST_GROWTH = 1.2;        // 2 级价格增长
 
 // 结算某个用户的离线收益
 function settle(userId) {
   const p = db.progress[userId];
   const now = Date.now();
 
-  // 第一次访问：只记录时间，不结算
   if (!p.lastTick) {
     p.lastTick = now;
     return;
   }
 
-  const elapsed = (now - p.lastTick) / 1000; // 过了多少秒
-  p.gold += p.machines * MACHINE_RATE * elapsed;
+  const elapsed = (now - p.lastTick) / 1000;
+
+  // 先算 2 级：它产 1 级自动机
+  p.machines["1"] += p.machines["2"] * M2_RATE * elapsed;
+
+  // 再算 1 级：它产金币
+  p.gold += p.machines["1"] * MACHINE_RATE * elapsed;
+
   p.lastTick = now;
 }
-
 
 app.listen(3000, () => {
   console.log('后端跑起来了：http://localhost:3000');

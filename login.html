@@ -10,7 +10,8 @@
   <h2>我的进度</h2>
   <button onclick="loadProgress()">查看进度</button>
   <button onclick="gain()">+10 金币</button>
-  <button onclick="buyMachine()">买 1 级自动机</button>
+ <button onclick="buyMachine(1)">买 1 级自动机</button>
+<button onclick="buyMachine(2)">买 2 级自动机</button>
   <pre id="progress"></pre>
 
   <script>
@@ -51,10 +52,14 @@
       document.getElementById('progress').innerText = JSON.stringify(d, null, 2);
     }
 
-    async function buyMachine() {
+async function buyMachine(level) {
   const r = await fetch('http://localhost:3000/api/buy-machine', {
     method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + token },
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ level }),
   });
   const d = await r.json();
   document.getElementById('progress').innerText = JSON.stringify(d, null, 2);
